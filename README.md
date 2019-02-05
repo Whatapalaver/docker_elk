@@ -1,25 +1,17 @@
-# Elastic stack (ELK) on Docker
+# Shakespeare and Elastic stack (ELK) on Docker
 
-[![Join the chat at https://gitter.im/deviantony/docker-elk](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/deviantony/docker-elk?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Elastic Stack version](https://img.shields.io/badge/ELK-6.5.4-blue.svg?style=flat)](https://github.com/deviantony/docker-elk/issues/344)
-[![Build Status](https://api.travis-ci.org/deviantony/docker-elk.svg?branch=master)](https://travis-ci.org/deviantony/docker-elk)
+ELK Stack instructions from [deviantony](https://github.com/deviantony/docker-elk)
+[Shakespeare instructions](https://www.elastic.co/guide/en/kibana/current/tutorial-load-dataset.html) for Kibana analysis
 
 Run the latest version of the [Elastic stack](https://www.elastic.co/elk-stack) with Docker and Docker Compose.
 
-It will give you the ability to analyze any data set by using the searching/aggregation capabilities of Elasticsearch
-and the visualization power of Kibana.
+It will give you the ability to analyze any data set by using the searching/aggregation capabilities of Elasticsearch and the visualization power of Kibana.
 
 Based on the official Docker images from Elastic:
 
 * [elasticsearch](https://github.com/elastic/elasticsearch-docker)
 * [logstash](https://github.com/elastic/logstash-docker)
 * [kibana](https://github.com/elastic/kibana-docker)
-
-**Note**: Other branches in this project are available:
-
-* [`x-pack`](https://github.com/deviantony/docker-elk/tree/x-pack): X-Pack support
-* [`searchguard`](https://github.com/deviantony/docker-elk/tree/searchguard): Search Guard support
-* [`vagrant`](https://github.com/deviantony/docker-elk/tree/vagrant): run Docker inside Vagrant
 
 ## Contents
 
@@ -40,13 +32,9 @@ Based on the official Docker images from Elastic:
 5. [Extensibility](#extensibility)
    * [How can I add plugins?](#how-can-i-add-plugins)
    * [How can I enable the provided extensions?](#how-can-i-enable-the-provided-extensions)
-6. [JVM tuning](#jvm-tuning)
-   * [How can I specify the amount of memory used by a service?](#how-can-i-specify-the-amount-of-memory-used-by-a-service)
-   * [How can I enable a remote JMX connection to a service?](#how-can-i-enable-a-remote-jmx-connection-to-a-service)
-7. [Going further](#going-further)
-   * [Using a newer stack version](#using-a-newer-stack-version)
-   * [Plugins and integrations](#plugins-and-integrations)
+6. [Going further](#going-further)
    * [Docker Swarm](#docker-swarm)
+7. [Wolff Notes](#wolff-notes)
 
 ## Requirements
 
@@ -65,10 +53,6 @@ apply the proper context:
 ```console
 $ chcon -R system_u:object_r:admin_home_t:s0 docker-elk/
 ```
-
-### Docker for Windows
-
-If you're using Docker for Windows, ensure the "Shared Drives" feature is enabled for the `C:` drive (Docker for Windows > Settings > Shared Drives). See [Configuring Docker for Windows Shared Drives](https://blogs.msdn.microsoft.com/stevelasker/2016/06/14/configuring-docker-for-windows-volumes/) (MSDN Blog).
 
 ## Usage
 
@@ -93,16 +77,96 @@ By default, the stack exposes the following ports:
 * 9300: Elasticsearch TCP transport
 * 5601: Kibana
 
-**WARNING**: If you're using `boot2docker`, you must access it via the `boot2docker` IP address instead of `localhost`.
+Now that the stack is running, you will want to inject some data using the bulk api:
 
-**WARNING**: If you're using *Docker Toolbox*, you must access it via the `docker-machine` IP address instead of
-`localhost`.
+Download the data files
 
-Now that the stack is running, you will want to inject some log entries. The shipped Logstash configuration allows you
-to send content via TCP:
+- The complete works of William Shakespeare, suitably parsed into fields. [Download shakespeare.json](https://download.elastic.co/demos/kibana/gettingstarted/shakespeare_6.0.json).
+- A set of fictitious accounts with randomly generated data. [Download accounts.zip](https://download.elastic.co/demos/kibana/gettingstarted/accounts.zip).
+- A set of randomly generated log files. [Download logs.jsonl.gz](https://download.elastic.co/demos/kibana/gettingstarted/logs.jsonl.gz).
 
-```console
-$ nc localhost 5000 < /path/to/logfile.log
+Post the mappings in Kibana console:
+
+```Kibana Dev Tools > Console
+PUT /shakespeare
+{
+ "mappings": {
+  "doc": {
+   "properties": {
+    "speaker": {"type": "keyword"},
+    "play_name": {"type": "keyword"},
+    "line_id": {"type": "integer"},
+    "speech_number": {"type": "integer"}
+   }
+  }
+ }
+}
+```
+
+```Kibana Dev Tools > Console
+PUT /logstash-2015.05.18
+{
+  "mappings": {
+    "log": {
+      "properties": {
+        "geo": {
+          "properties": {
+            "coordinates": {
+              "type": "geo_point"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```Kibana Dev Tools > Console
+PUT /logstash-2015.05.19
+{
+  "mappings": {
+    "log": {
+      "properties": {
+        "geo": {
+          "properties": {
+            "coordinates": {
+              "type": "geo_point"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```Kibana Dev Tools > Console
+PUT /logstash-2015.05.20
+{
+  "mappings": {
+    "log": {
+      "properties": {
+        "geo": {
+          "properties": {
+            "coordinates": {
+              "type": "geo_point"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+Run bulk Imports to ElasticSearch
+
+```Terminal console
+curl -H 'Content-Type: application/x-ndjson' -XPOST 'localhost:9200/bank/account/_bulk?pretty' --data-binary @accounts.json
+curl -H 'Content-Type: application/x-ndjson' -XPOST 'localhost:9200/shakespeare/doc/_bulk?pretty' --data-binary @shakespeare_6.0.json
+curl -H 'Content-Type: application/x-ndjson' -XPOST 'localhost:9200/_bulk?pretty' --data-binary @logs.jsonl
 ```
 
 ## Initial setup
@@ -113,12 +177,10 @@ When Kibana launches for the first time, it is not configured with any index pat
 
 #### Via the Kibana web UI
 
-**NOTE**: You need to inject data into Logstash before being able to configure a Logstash index pattern via the Kibana web
-UI. Then all you have to do is hit the *Create* button.
+**NOTE**: You need to inject data into Logstash before being able to configure a Logstash index pattern via the Kibana web UI. Then all you have to do is hit the *Create* button.
 
 Refer to [Connect Kibana with
-Elasticsearch](https://www.elastic.co/guide/en/kibana/current/connect-to-elasticsearch.html) for detailed instructions
-about the index pattern configuration.
+Elasticsearch](https://www.elastic.co/guide/en/kibana/current/connect-to-elasticsearch.html) for detailed instructions about the index pattern configuration.
 
 #### On the command line
 
@@ -217,65 +279,8 @@ are not part of the standard Elastic stack, but can be used to enrich it with ex
 The documentation for these extensions is provided inside each individual subdirectory, on a per-extension basis. Some
 of them require manual changes to the default ELK configuration.
 
-## JVM tuning
-
-### How can I specify the amount of memory used by a service?
-
-By default, both Elasticsearch and Logstash start with [1/4 of the total host
-memory](https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/parallel.html#default_heap_size) allocated to
-the JVM Heap Size.
-
-The startup scripts for Elasticsearch and Logstash can append extra JVM options from the value of an environment
-variable, allowing the user to adjust the amount of memory that can be used by each component:
-
-| Service       | Environment variable |
-|---------------|----------------------|
-| Elasticsearch | ES_JAVA_OPTS         |
-| Logstash      | LS_JAVA_OPTS         |
-
-To accomodate environments where memory is scarce (Docker for Mac has only 2 GB available by default), the Heap Size
-allocation is capped by default to 256MB per service in the `docker-compose.yml` file. If you want to override the
-default JVM configuration, edit the matching environment variable(s) in the `docker-compose.yml` file.
-
-For example, to increase the maximum JVM Heap Size for Logstash:
-
-```yml
-logstash:
-
-  environment:
-    LS_JAVA_OPTS: "-Xmx1g -Xms1g"
-```
-
-### How can I enable a remote JMX connection to a service?
-
-As for the Java Heap memory (see above), you can specify JVM options to enable JMX and map the JMX port on the Docker
-host.
-
-Update the `{ES,LS}_JAVA_OPTS` environment variable with the following content (I've mapped the JMX service on the port
-18080, you can change that). Do not forget to update the `-Djava.rmi.server.hostname` option with the IP address of your
-Docker host (replace **DOCKER_HOST_IP**):
-
-```yml
-logstash:
-
-  environment:
-    LS_JAVA_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=18080 -Dcom.sun.management.jmxremote.rmi.port=18080 -Djava.rmi.server.hostname=DOCKER_HOST_IP -Dcom.sun.management.jmxremote.local.only=false"
-```
 
 ## Going further
-
-### Using a newer stack version
-
-To use a different Elastic Stack version than the one currently available in the repository, simply change the version
-number inside the `.env` file, and rebuild the stack with:
-
-```console
-$ docker-compose build
-$ docker-compose up
-```
-
-**NOTE**: Always pay attention to the [upgrade instructions](https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-upgrade.html)
-for each individual component before performing a stack upgrade.
 
 ### Plugins and integrations
 
@@ -301,3 +306,15 @@ $ docker stack services elk
 
 **NOTE:** to scale Elasticsearch in Swarm mode, configure *zen* to use the DNS name `tasks.elasticsearch` instead of
 `elasticsearch`.
+
+## Wolff Notes
+=====
+
+Using elasticdump to import files into elasticsearch.
+- Import local mappings into elastic search:
+```
+docker run -v $(pwd)/data:/temp/ --network docker-elk_elk taskrabbit/elasticsearch-dump \
+--input=/temp/mapping.json \
+--output=http://elasticsearch:9200/objects_050219 \
+--type=mapping
+```
