@@ -1,3 +1,19 @@
+List all Indices
+===
+
+`GET /_cat/indices?v`
+
+Simplest Query All:
+
+```
+GET /_search
+{
+    "query": {
+        "match_all": {}
+    }
+}
+```
+
 Query and Filter
 ===
 
