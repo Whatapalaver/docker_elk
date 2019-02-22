@@ -240,3 +240,157 @@ GET city_offices/_search
   }
 }
 ```
+
+Nested Aggregations
+===
+
+```
+GET city_offices/_search
+{
+  "size": 0,
+  "aggs": {
+    "citizens": {
+      "nested": {
+        "path": "citizens"
+      },
+      "aggs": {
+        "occupations": {
+          "terms": {
+            "field": "citizens.occupation",
+            "size": 50
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Reverse Nested Aggregations
+===
+
+This allows the aggregation of parent docs from nested documents. 
+
+"How many offices are these citizens registered?"
+
+```
+GET city_offices/_search
+{
+  "size": 0,
+  "aggs": {
+    "citizens": {
+      "nested": {
+        "path": "citizens"
+      },
+      "aggs": {
+        "occupations": {
+          "terms": {
+            "field": "citizens.occupation",
+            "size": 50
+          },
+          "aggs": {
+            "in_offices": {
+              "reverse_nested": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+"How many pets per kind are registered per citizen?"
+
+```
+GET city_offices/_search
+{
+  "size": 0,
+  "aggs": {
+    "citizens": {
+      "nested": {
+        "path": "citizens.pets"
+      },
+      "aggs": {
+        "kinds": {
+          "terms": {
+            "field": "citizens.pets.kind",
+            "size": 10
+          },
+          "aggs": {
+            "per_citizen": {
+              "reverse_nested": {
+                "path": "citizens"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Multiple nesting (sub-aggregations of nested objects)
+===
+
+"For each city, how many kind of pets are registered per citizen occupation and in how many offices?"
+
+```
+GET city_offices/_search
+{
+  "size": 0,
+  "aggs": {
+    "cities": {
+      "terms": {
+        "field": "city",
+        "size": 50
+      },
+      "aggs": {
+        "citizens": {
+          "nested": {
+            "path": "citizens"
+          },
+          "aggs": {
+            "occupations": {
+              "terms": {
+                "field": "citizens.occupation",
+                "size": 50
+              },
+              "aggs": {
+                "pets": {
+                  "nested": {
+                    "path": "citizens.pets"
+                  },
+                  "aggs": {
+                    "kinds": {
+                      "terms": {
+                        "field": "citizens.pets.kind",
+                        "size": 10
+                      },
+                      "aggs": {
+                        "per_occupation": {
+                          "reverse_nested": {
+                            "path": "citizens"
+                          }
+                        },
+                        "per_office": {
+                          "reverse_nested": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Global Aggregations
+===
+
