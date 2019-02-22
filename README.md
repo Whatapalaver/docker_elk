@@ -1,11 +1,14 @@
-# Shakespeare and Elastic stack (ELK) on Docker
+# Elastic stack (ELK) on Docker for Running through Assorted Elasticsearch Tutorials
+
+There are README docs for most of the tutorials I have completed and links and data associated with them:
+- [Simple Queries](./queries.md)
+- [Aggregations](./aggregations.md)
+
+Tutorials followed:
+- [Official ES Shakespeare](https://www.elastic.co/guide/en/kibana/current/tutorial-load-dataset.html)
+- [Iridakos aggregations](https://iridakos.com/tutorials/2018/10/22/elasticsearch-bucket-aggregations.html)
 
 ELK Stack instructions from [deviantony](https://github.com/deviantony/docker-elk)
-[Shakespeare instructions](https://www.elastic.co/guide/en/kibana/current/tutorial-load-dataset.html) for Kibana analysis
-
-Run the latest version of the [Elastic stack](https://www.elastic.co/elk-stack) with Docker and Docker Compose.
-
-It will give you the ability to analyze any data set by using the searching/aggregation capabilities of Elasticsearch and the visualization power of Kibana.
 
 Based on the official Docker images from Elastic:
 
@@ -17,8 +20,6 @@ Based on the official Docker images from Elastic:
 
 1. [Requirements](#requirements)
    * [Host setup](#host-setup)
-   * [SELinux](#selinux)
-   * [Docker for Windows](#docker-for-windows)
 2. [Usage](#usage)
    * [Bringing up the stack](#bringing-up-the-stack)
    * [Initial setup](#initial-setup)
@@ -43,16 +44,6 @@ Based on the official Docker images from Elastic:
 1. Install [Docker](https://www.docker.com/community-edition#/download) version **17.05+**
 2. Install [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
 3. Clone this repository
-
-### SELinux
-
-On distributions which have SELinux enabled out-of-the-box you will need to either re-context the files or set SELinux
-into Permissive mode in order for docker-elk to start properly. For example on Redhat and CentOS, the following will
-apply the proper context:
-
-```console
-$ chcon -R system_u:object_r:admin_home_t:s0 docker-elk/
-```
 
 ## Usage
 
